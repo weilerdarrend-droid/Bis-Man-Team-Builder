@@ -178,12 +178,28 @@ function renderTeams(){
  const active=bowlers.filter(b=>b.status==='active');
  $('unassigned').innerHTML=active.filter(b=>!assigned.has(b.id)).sort(sortBowlers).map(b=>`<div class="bowlerrow"><span><span class="num">#${esc(b.jersey_number)}</span> <strong>${esc(fullName(b))}</strong></span>${canRoster()?teamSelect(b.id,''):''}</div>`).join('')||'<span class="muted">Everyone is assigned.</span>';
  $('teamGrid').innerHTML=teams.map(t=>{const members=assignments.filter(a=>a.team_id===t.id).map(a=>bowlers.find(b=>b.id===a.bowler_id)).filter(Boolean).sort(sortBowlers);
- return `<div class="card team"><h3>${esc(t.name)}</h3>${members.map(b=>`<div class="bowlerrow"><span><span class="num">#${esc(b.jersey_number)}</span> ${esc(fullName(b))}</span>${canRoster()?teamSelect(b.id,t.id):''}</div>`).join('')||'<span class="muted">No bowlers assigned.</span>'}</div>`}).join('');
+ return `<div class="card team"><div class="topbar"><h3 style="margin:0">${esc(t.name)}</h3>${canRoster()?`<button class="danger" data-delete-team="${t.id}" title="Delete team">Delete Team</button>`:''}</div><div style="margin-top:10px">${members.map(b=>`<div class="bowlerrow"><span><span class="num">#${esc(b.jersey_number)}</span> ${esc(fullName(b))}</span>${canRoster()?teamSelect(b.id,t.id):''}</div>`).join('')||'<span class="muted">No bowlers assigned.</span>'}</div></div>`}).join('');
  document.querySelectorAll('[data-team-bowler]').forEach(s=>s.onchange=()=>assignBowler(s.dataset.teamBowler,s.value));
+ document.querySelectorAll('[data-delete-team]').forEach(b=>b.onclick=()=>deleteTeam(b.dataset.deleteTeam));
 }
 function teamSelect(bid,current){return `<select data-team-bowler="${bid}"><option value="">Unassigned</option>${teams.map(t=>`<option value="${t.id}" ${t.id===current?'selected':''}>${esc(t.name)}</option>`).join('')}</select>`}
 async function assignBowler(bid,tid){if(!canRoster())return;await db.from('team_assignments').delete().eq('bowler_id',bid);if(tid){const {error}=await db.from('team_assignments').insert({bowler_id:bid,team_id:tid});if(error)return alert(error.message)}await loadCore();}
 async function addTeam(){if(!canRoster())return;const name=prompt('Team name');if(!name)return;const max=Math.max(0,...teams.map(t=>t.display_order||0));const {error}=await db.from('teams').insert({name:name.trim(),display_order:max+1,active:true});if(error)return alert(error.message);await loadCore();}
+async function deleteTeam(id){
+ if(!canRoster())return;
+ const t=teams.find(x=>x.id===id);if(!t)return;
+ const memberCount=assignments.filter(a=>a.team_id===id).length;
+ const msg=memberCount
+  ? `Delete ${t.name}?\n\n${memberCount} bowler${memberCount===1?' is':'s are'} currently assigned. They will be returned to Unassigned Active Bowlers.`
+  : `Delete ${t.name}?`;
+ if(!confirm(msg))return;
+ setCloud('Deleting team…');
+ const a=await db.from('team_assignments').delete().eq('team_id',id);
+ if(a.error)return alert(a.error.message);
+ const r=await db.from('teams').delete().eq('id',id);
+ if(r.error)return alert(r.error.message);
+ await loadCore();
+}
 function renderProfileSelect(){const old=$('profileBowler').value;$('profileBowler').innerHTML='<option value="">Choose a bowler…</option>'+bowlers.slice().sort(sortBowlers).map(b=>`<option value="${b.id}">#${esc(b.jersey_number)} ${esc(fullName(b))}</option>`).join('');if(old&&bowlers.some(b=>b.id===old))$('profileBowler').value=old;$('saveProfileBtn').classList.toggle('hidden',!canEditPlayer());}
 async function openProfile(id){selectedBowler=id;showView('profiles');$('profileBowler').value=id;await loadPlayer();}
 async function loadPlayer(){
