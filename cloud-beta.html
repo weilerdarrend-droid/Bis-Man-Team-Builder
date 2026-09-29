@@ -15,9 +15,9 @@ header{background:var(--navy);color:white;padding:8px 18px}.brand{max-width:1260
 nav{position:sticky;top:0;z-index:20;background:#102f49;border-bottom:1px solid #284b65;overflow-x:auto;white-space:nowrap;padding:7px max(12px,calc((100vw - 1260px)/2))}nav button{margin:0 3px;background:transparent;color:#dceaf4;border:1px solid transparent}nav button.active{background:#fff;color:#10283d}
 main{max-width:1260px;margin:14px auto 40px;padding:0 12px}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 1px 2px #00000008}.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.tools>*{width:auto}.status{background:#e9f0f5;border-radius:9px;padding:8px 10px;color:#41596c}.badge{display:inline-block;border-radius:999px;padding:5px 9px;background:#e6f0f8;font-weight:700}.badge.admin{background:#dcecf8}.badge.head_coach{background:#e7e2fb}.badge.coach{background:#e4f4e9}.badge.view_only{background:#eee}.hidden{display:none!important}.view{display:none}.view.active{display:block}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.field label{font-size:12px;font-weight:700;color:#536a7d;display:block;margin:0 0 4px}.tablewrap{overflow:auto}table{border-collapse:collapse;width:100%;min-width:720px}th,td{text-align:left;padding:9px;border-bottom:1px solid #d8e2ea}th{background:#eaf1f5}.num{background:#0d2940;color:#fff;border-radius:6px;padding:5px 7px;font-weight:800}.muted{color:var(--muted)}.small{font-size:12px}.notice{border-left:4px solid var(--blue);background:#f7fbfe}.warn{border-left:4px solid var(--gold);background:#fffaf0}.error{color:#a51f1f;font-weight:700}.ok{color:#16734b;font-weight:700}
-.teamgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.team{min-height:180px}.team h3{margin:0 0 10px}.bowlerrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid #edf1f4}.bowlerrow select{width:auto;min-width:135px}.profilehead{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.profilehead .field{min-width:250px;flex:1}.subcard{border:1px solid #d8e2ea;border-radius:10px;padding:12px;margin-top:10px}.listitem{padding:9px;border-bottom:1px solid #e4ebf0}.listitem:last-child{border:0}.practiceblock{display:grid;grid-template-columns:95px 1fr 100px auto;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid #e1e8ee}.login{max-width:500px;margin:45px auto}.login h2{margin-top:0}.footer{text-align:center;color:#6b7e8f;padding:20px}
+.teamgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.team{min-height:180px}.team h3{margin:0 0 10px}.bowlerrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid #edf1f4}.bowlerrow select{width:auto;min-width:135px}.profilehead{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.profilehead .field{min-width:250px;flex:1}.profiletop{display:grid;grid-template-columns:180px 1fr;gap:18px;align-items:start}.photoBox{width:180px;height:220px;border:2px dashed #b8c8d6;border-radius:12px;background:#f5f8fa;display:flex;align-items:center;justify-content:center;overflow:hidden;text-align:center;color:#6b7e8f}.photoBox img{width:100%;height:100%;object-fit:cover}.profileSection{width:100%}.subcard{border:1px solid #d8e2ea;border-radius:10px;padding:12px;margin-top:10px}.listitem{padding:9px;border-bottom:1px solid #e4ebf0}.listitem:last-child{border:0}.practiceblock{display:grid;grid-template-columns:95px 1fr 100px auto;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid #e1e8ee}.login{max-width:500px;margin:45px auto}.login h2{margin-top:0}.footer{text-align:center;color:#6b7e8f;padding:20px}
 @media(max-width:950px){.teamgrid{grid-template-columns:1fr 1fr}.grid4{grid-template-columns:1fr 1fr}.grid3{grid-template-columns:1fr 1fr}}
-@media(max-width:700px){header{padding:6px 10px}.brand{display:block;text-align:center}.brand img{width:min(560px,95vw)}.brandcopy{display:none}main{padding:0 8px}.grid2,.grid3,.grid4,.teamgrid{grid-template-columns:1fr}.tools>*{width:100%}.practiceblock{grid-template-columns:1fr}.topbar{align-items:stretch}nav{padding-left:5px}.profilehead .field{min-width:100%}}
+@media(max-width:700px){.profiletop{grid-template-columns:1fr}.photoBox{width:160px;height:195px;margin:auto}header{padding:6px 10px}.brand{display:block;text-align:center}.brand img{width:min(560px,95vw)}.brandcopy{display:none}main{padding:0 8px}.grid2,.grid3,.grid4,.teamgrid{grid-template-columns:1fr}.tools>*{width:100%}.practiceblock{grid-template-columns:1fr}.topbar{align-items:stretch}nav{padding-left:5px}.profilehead .field{min-width:100%}}
 </style>
 </head>
 <body>
@@ -74,7 +74,12 @@ main{max-width:1260px;margin:14px auto 40px;padding:0 12px}.card{background:var(
 <section id="profiles" class="view">
 <div class="card profilehead"><div class="field"><label>Select Bowler</label><select id="profileBowler"></select></div><button id="saveProfileBtn" class="primary">Save Player Profile</button></div>
 <div id="profileArea" class="hidden">
-<div class="card"><h2 id="profileName">Player Profile</h2><div class="grid4">
+<div class="card"><h2 id="profileName">Player Profile</h2><div class="profiletop">
+<div>
+<div class="photoBox" id="photoBox"><span>No Profile Photo</span></div>
+<div id="photoControls" style="margin-top:8px"><input id="photoFile" type="file" accept="image/*"><button id="setPhotoBtn" style="width:100%;margin-top:6px">Add / Change Photo</button><button id="removePhotoBtn" class="danger" style="width:100%;margin-top:6px">Remove Photo</button></div>
+</div>
+<div><div class="grid4">
 <div class="field"><label>School</label><input id="pSchool"></div><div class="field"><label>Grade</label><input id="pGrade"></div>
 <div class="field"><label>Handedness</label><select id="pHand"><option value=""></option><option>Right</option><option>Left</option></select></div>
 <div class="field"><label>Ball Weight</label><input id="pWeight"></div>
@@ -82,14 +87,13 @@ main{max-width:1260px;margin:14px auto 40px;padding:0 12px}.card{background:var(
 <div class="field"><label>Ball Speed</label><input id="pSpeed"></div><div class="field"><label>Rev Rate</label><input id="pRevs"></div>
 <div class="field"><label>Axis Rotation</label><input id="pRotation"></div><div class="field"><label>Axis Tilt</label><input id="pTilt"></div>
 <div class="field"><label>Bowling Style</label><input id="pStyle"></div><div class="field"><label>Preferred Line</label><input id="pLine"></div>
-</div><br><div class="field"><label>General Notes</label><textarea id="pNotes"></textarea></div></div>
+</div><br><div class="field"><label>General Notes</label><textarea id="pNotes"></textarea></div></div></div></div>
 
-<div class="grid2">
-<div class="card"><h3>Coaching / Development Notes</h3><div class="tools"><input id="newCoachNote" placeholder="Add a coaching note"><button id="addCoachNoteBtn" class="primary">Add Note</button></div><div id="coachNotes"></div></div>
-<div class="card"><h3>Development Goals</h3><div class="grid2"><input id="goalFocus" placeholder="Focus / goal"><select id="goalStatus"><option value="current_focus">Current Focus</option><option value="strength">Strength</option><option value="goal">Goal</option><option value="completed">Completed</option></select></div><br><textarea id="goalNotes" placeholder="Notes"></textarea><br><button id="addGoalBtn" class="primary">Add Development Item</button><div id="goals"></div></div>
-</div>
+<div class="card profileSection"><h3>Coaching / Development Notes</h3><div class="tools"><input id="newCoachNote" placeholder="Add a coaching note"><button id="addCoachNoteBtn" class="primary">Add Note</button></div><div id="coachNotes"></div></div>
 
-<div class="card"><h3>Ball Arsenal</h3><div class="grid4">
+<div class="card profileSection"><h3>Development Goals</h3><div class="grid2"><input id="goalFocus" placeholder="Focus / goal"><select id="goalStatus"><option value="current_focus">Current Focus</option><option value="strength">Strength</option><option value="goal">Goal</option><option value="completed">Completed</option></select></div><br><textarea id="goalNotes" placeholder="Notes"></textarea><br><button id="addGoalBtn" class="primary">Add Development Item</button><div id="goals"></div></div>
+
+<div class="card profileSection"><h3>Ball Arsenal</h3><div class="grid4">
 <input id="aName" placeholder="Ball name"><input id="aWeight" placeholder="Weight"><input id="aRg" placeholder="RG"><input id="aDiff" placeholder="Differential">
 <input id="aInt" placeholder="Intermediate diff"><input id="aCover" placeholder="Coverstock"><input id="aSurface" placeholder="Surface"><input id="aLayout" placeholder="Layout">
 <input id="aPinPap" placeholder="Pin-to-PAP"><input id="aRole" placeholder="Ball role"><input id="aNotes" placeholder="Notes">
@@ -209,9 +213,47 @@ async function loadPlayer(){
  for(const r of [p,n,a,g])if(r.error)throw r.error;const x=p.data||{};
  const map={pSchool:'school',pGrade:'grade',pHand:'handedness',pWeight:'ball_weight',pPapX:'pap_x',pPapY:'pap_y',pSpeed:'ball_speed',pRevs:'rev_rate',pRotation:'axis_rotation',pTilt:'axis_tilt',pStyle:'bowling_style',pLine:'preferred_line',pNotes:'general_notes'};
  Object.entries(map).forEach(([el,k])=>{$(el).value=x[k]??'';$(el).disabled=!canEditPlayer()});
+ renderProfilePhoto(x.photo_url);
+ $('photoControls').classList.toggle('hidden',!canEditPlayer());
  renderNotes(n.data||[]);renderArsenal(a.data||[]);renderGoals(g.data||[]);
  ['newCoachNote','goalFocus','goalStatus','goalNotes','aName','aWeight','aRg','aDiff','aInt','aCover','aSurface','aLayout','aPinPap','aRole','aNotes'].forEach(el=>$(el).disabled=!canEditPlayer());
  ['addCoachNoteBtn','addGoalBtn','addBallBtn'].forEach(el=>$(el).classList.toggle('hidden',!canEditPlayer()));
+}
+
+function renderProfilePhoto(url){
+ $('photoBox').innerHTML=url?`<img src="${url}" alt="Player profile photo">`:'<span>No Profile Photo</span>';
+ $('removePhotoBtn').classList.toggle('hidden',!url);
+}
+async function imageFileToDataUrl(file){
+ return new Promise((resolve,reject)=>{
+  const reader=new FileReader();
+  reader.onerror=()=>reject(new Error('Could not read photo.'));
+  reader.onload=()=>{
+   const img=new Image();
+   img.onerror=()=>reject(new Error('Could not open photo.'));
+   img.onload=()=>{
+    const max=700, scale=Math.min(1,max/Math.max(img.width,img.height));
+    const c=document.createElement('canvas');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    resolve(c.toDataURL('image/jpeg',0.78));
+   };img.src=reader.result;
+  };reader.readAsDataURL(file);
+ });
+}
+async function setProfilePhoto(){
+ if(!selectedBowler||!canEditPlayer())return;
+ const file=$('photoFile').files?.[0];if(!file)return alert('Choose a photo first.');
+ try{
+  setCloud('Saving profile photo…');
+  const photo_url=await imageFileToDataUrl(file);
+  const {error}=await db.from('player_profiles').upsert({bowler_id:selectedBowler,photo_url});
+  if(error)throw error;$('photoFile').value='';renderProfilePhoto(photo_url);setCloud('Profile photo saved','ok');
+ }catch(e){alert(e.message);setCloud('Photo save failed','error');}
+}
+async function removeProfilePhoto(){
+ if(!selectedBowler||!canEditPlayer()||!confirm('Remove this profile photo?'))return;
+ const {error}=await db.from('player_profiles').upsert({bowler_id:selectedBowler,photo_url:null});
+ if(error)return alert(error.message);renderProfilePhoto(null);setCloud('Profile photo removed','ok');
 }
 async function saveProfile(){
  if(!selectedBowler||!canEditPlayer())return;const val=id=>$(id).value.trim()||null;
@@ -245,7 +287,7 @@ function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.
 async function start(user){sessionUser=user;try{coach=await getCoach(user.id);if(!coach.active)throw new Error('This Coaching Hub account is inactive.');$('who').textContent=coach.full_name||coach.email||user.email;$('roleBadge').textContent=roleLabel(coach.role);$('roleBadge').className='badge '+coach.role;$('loginView').classList.add('hidden');$('app').classList.remove('hidden');await loadCore();}catch(e){$('loginStatus').textContent=e.message;$('loginStatus').className='error';}}
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginStatus').textContent='Signing in…';$('loginStatus').className='muted';const {data,error}=await db.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error){$('loginStatus').textContent=error.message;$('loginStatus').className='error';return;}await start(data.user);});
 $('signOutBtn').onclick=async()=>{await db.auth.signOut();location.reload()};$('refreshBtn').onclick=loadCore;
-$('addBowlerBtn').onclick=addBowler;$('addTeamBtn').onclick=addTeam;$('profileBowler').onchange=loadPlayer;$('saveProfileBtn').onclick=saveProfile;$('addCoachNoteBtn').onclick=addNote;$('addGoalBtn').onclick=addGoal;$('addBallBtn').onclick=addBall;
+$('addBowlerBtn').onclick=addBowler;$('addTeamBtn').onclick=addTeam;$('profileBowler').onchange=loadPlayer;$('saveProfileBtn').onclick=saveProfile;$('setPhotoBtn').onclick=setProfilePhoto;$('removePhotoBtn').onclick=removeProfilePhoto;$('addCoachNoteBtn').onclick=addNote;$('addGoalBtn').onclick=addGoal;$('addBallBtn').onclick=addBall;
 $('newPracticeBtn').onclick=newPractice;$('savePracticeBtn').onclick=savePractice;$('addBlockBtn').onclick=addBlock;
 document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>showView(b.dataset.view));
 db.auth.getSession().then(({data})=>{if(data.session?.user)start(data.session.user)});
