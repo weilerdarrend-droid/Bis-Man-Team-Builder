@@ -132,7 +132,7 @@ main{max-width:1260px;margin:14px auto 40px;padding:0 12px}.card{background:var(
 <button id="inviteStaffBtn" class="primary">Send Invitation</button> <span id="staffActionState" class="small muted"></span>
 <hr>
 </div>
-<div id="staffList"></div>
+<h3 style="margin-top:22px">Staff Accounts</h3><div id="staffList"></div>
 </div>
 <div class="card"><h3>How Invitations Work</h3><p class="muted">Admin/Head Coach enters a name, email and role. The secure Supabase function sends the invitation. The coach sets a password and then uses the same Bis-Man Coaching Hub web address on desktop, iPad or phone.</p></div>
 </section>
@@ -332,10 +332,10 @@ async function moveBlock(rows,id,dir){const i=rows.findIndex(x=>x.id===id),j=i+d
 function renderStaff(){
  const manage=canManageStaff();
  $('staffAdminControls').classList.toggle('hidden',!manage);
- $('staffRole').querySelector('option[value="admin"]').disabled=myProfile?.role!=='admin';
+ $('staffRole').querySelector('option[value="admin"]').disabled=coach?.role!=='admin';
  $('staffList').innerHTML=staff.map(s=>{
   const self=s.id===sessionUser?.id,isAdmin=s.role==='admin';
-  const actions=manage&&!self?`<div class="rowgap"><button data-staff-resend="${s.id}" data-name="${esc(s.full_name||s.email)}">Resend Invitation</button><button data-staff-toggle="${s.id}" data-active="${s.active!==false}">${s.active===false?'Reactivate':'Deactivate'}</button>${(!isAdmin||myProfile?.role==='admin')?`<button class="danger" data-staff-remove="${s.id}" data-name="${esc(s.full_name||s.email)}">Remove Access</button>`:''}</div>`:'';
+  const actions=manage&&!self?`<div class="rowgap"><button data-staff-resend="${s.id}" data-name="${esc(s.full_name||s.email)}">Resend Invitation</button><button data-staff-toggle="${s.id}" data-active="${s.active!==false}">${s.active===false?'Reactivate':'Deactivate'}</button>${(!isAdmin||coach?.role==='admin')?`<button class="danger" data-staff-remove="${s.id}" data-name="${esc(s.full_name||s.email)}">Remove Access</button>`:''}</div>`:'';
   return `<div class="bowlerrow"><span><strong>${esc(s.full_name||s.email)}</strong>${self?' <span class="small muted">(You)</span>':''}<br><span class="small muted">${esc(s.email||'')}</span></span><span><span class="badge ${esc(s.role)}">${esc(roleLabel(s.role))}${s.active===false?' • Inactive':''}</span>${actions}</span></div>`;
  }).join('')||'<p class="muted">No staff accounts found.</p>';
  document.querySelectorAll('[data-staff-resend]').forEach(b=>b.onclick=()=>resendStaff(b.dataset.staffResend,b.dataset.name));
@@ -379,7 +379,7 @@ async function invokeStaff(action,body={}){
 async function inviteStaff(){
  const full_name=$('staffName').value.trim(),email=$('staffEmail').value.trim().toLowerCase(),role=$('staffRole').value;
  if(!full_name||!email)return alert('Enter the coach name and email address.');
- if(role==='admin'&&myProfile?.role!=='admin')return alert('Only an Administrator can create another Administrator.');
+ if(role==='admin'&&coach?.role!=='admin')return alert('Only an Administrator can create another Administrator.');
  try{await invokeStaff('invite',{full_name,email,role});$('staffName').value='';$('staffEmail').value='';$('staffRole').value='coach';await loadCore()}catch(e){$('staffActionState').textContent='';alert(e.message)}
 }
 async function resendStaff(id,name){
