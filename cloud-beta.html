@@ -159,15 +159,29 @@ function sortBowlers(a,b){return (a.last_name||'').localeCompare(b.last_name||''
 async function getCoach(uid){const {data,error}=await db.from('coach_profiles').select('*').eq('id',uid).single();if(error)throw error;return data;}
 async function loadCore(){
  setCloud('Syncing…');
- const [br,tr,ar,pr,sr]=await Promise.all([
+ const [br,tr,ar,pr]=await Promise.all([
   db.from('bowlers').select('*').order('last_name').order('first_name'),
   db.from('teams').select('*').eq('active',true).order('display_order'),
   db.from('team_assignments').select('*'),
-  db.from('practice_plans').select('*').order('practice_date',{ascending:false}),
-  db.from('coach_profiles').select('id,email,full_name,role,active').order('full_name')
+  db.from('practice_plans').select('*').order('practice_date',{ascending:false})
  ]);
- for(const r of [br,tr,ar,pr,sr]) if(r.error) throw r.error;
- bowlers=br.data||[];teams=tr.data||[];assignments=ar.data||[];practices=pr.data||[];staff=sr.data||[];
+ for(const r of [br,tr,ar,pr]) if(r.error) throw r.error;
+ bowlers=br.data||[];teams=tr.data||[];assignments=ar.data||[];practices=pr.data||[];
+ // Staff listing is fetched through the secure Edge Function so Admin/Head Coach
+ // can see all staff even when coach_profiles RLS only exposes the current user's row.
+ if(canManageStaff()){
+  try{
+   const staffResult=await invokeStaff('list');
+   staff=staffResult?.staff||[];
+  }catch(e){
+   console.warn('Secure staff list failed; falling back to visible profiles.',e);
+   const sr=await db.from('coach_profiles').select('id,email,full_name,role,active').order('full_name');
+   staff=sr.data||[];
+  }
+ }else{
+  const sr=await db.from('coach_profiles').select('id,email,full_name,role,active').order('full_name');
+  staff=sr.data||[];
+ }
  renderAll();setCloud('Synced '+new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}),'ok');
 }
 function renderAll(){renderDashboard();renderRoster();renderTeams();renderProfileSelect();renderPractices();renderStaff();}
