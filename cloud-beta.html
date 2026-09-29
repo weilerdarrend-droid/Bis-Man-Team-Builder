@@ -119,8 +119,22 @@ main{max-width:1260px;margin:14px auto 40px;padding:0 12px}.card{background:var(
 </section>
 
 <section id="staff" class="view">
-<div class="card"><h2>Coaching Staff</h2><p class="muted">Accounts and roles currently registered with the Hub.</p><div id="staffList"></div></div>
-<div class="card warn"><strong>Protected account management:</strong> Admin/Head Coach account creation and role changes will use a secure server-side function. No service-role secret is stored in this public website.</div>
+<div class="card" id="staffManager">
+<h2>Coaching Staff</h2>
+<p class="muted">Each coach has an individual login. Coaching notes are tied to that login.</p>
+<div id="staffAdminControls" class="hidden">
+<h3>Invite Coach</h3>
+<div class="grid3">
+<div class="field"><label>Full Name</label><input id="staffName" placeholder="Chris Masse"></div>
+<div class="field"><label>Email Address</label><input id="staffEmail" type="email" placeholder="coach@example.com"></div>
+<div class="field"><label>Role</label><select id="staffRole"><option value="coach">Coach</option><option value="head_coach">Head Coach</option><option value="view_only">View Only</option><option value="admin">Administrator</option></select></div>
+</div><br>
+<button id="inviteStaffBtn" class="primary">Send Invitation</button> <span id="staffActionState" class="small muted"></span>
+<hr>
+</div>
+<div id="staffList"></div>
+</div>
+<div class="card"><h3>How Invitations Work</h3><p class="muted">Admin/Head Coach enters a name, email and role. The secure Supabase function sends the invitation. The coach sets a password and then uses the same Bis-Man Coaching Hub web address on desktop, iPad or phone.</p></div>
 </section>
 </main>
 <div class="footer">Bis-Man Coaching Hub • Shared Cloud Edition</div>
@@ -301,7 +315,18 @@ async function loadBlocks(){const {data,error}=await db.from('practice_blocks').
 }
 async function addBlock(){if(!selectedPractice)return;const title=$('blockTitle').value.trim();if(!title)return alert('Enter a block title.');const {data}=await db.from('practice_blocks').select('display_order').eq('practice_id',selectedPractice).order('display_order',{ascending:false}).limit(1);const order=(data?.[0]?.display_order||0)+1;const {error}=await db.from('practice_blocks').insert({practice_id:selectedPractice,block_type:$('blockType').value,title,description:$('blockDescription').value.trim()||null,duration_minutes:Number($('blockMinutes').value)||null,display_order:order});if(error)return alert(error.message);$('blockTitle').value=$('blockMinutes').value=$('blockDescription').value='';await loadBlocks();}
 async function moveBlock(rows,id,dir){const i=rows.findIndex(x=>x.id===id),j=i+dir;if(i<0||j<0||j>=rows.length)return;const a=rows[i],b=rows[j],ao=a.display_order??i,bo=b.display_order??j;await db.from('practice_blocks').update({display_order:bo}).eq('id',a.id);await db.from('practice_blocks').update({display_order:ao}).eq('id',b.id);await loadBlocks();}
-function renderStaff(){$('staffList').innerHTML=staff.map(s=>`<div class="bowlerrow"><span><strong>${esc(s.full_name||s.email)}</strong><br><span class="small muted">${esc(s.email||'')}</span></span><span class="badge ${esc(s.role)}">${esc(roleLabel(s.role))}${s.active===false?' • Inactive':''}</span></div>`).join('')||'<p class="muted">No staff accounts found.</p>';}
+function renderStaff(){
+ const manage=canManageStaff();
+ $('staffAdminControls').classList.toggle('hidden',!manage);
+ $('staffRole').querySelector('option[value="admin"]').disabled=myProfile?.role!=='admin';
+ $('staffList').innerHTML=staff.map(s=>{
+  const self=s.id===sessionUser?.id,isAdmin=s.role==='admin';
+  const actions=manage&&!self?`<div class="rowgap"><button data-staff-toggle="${s.id}" data-active="${s.active!==false}">${s.active===false?'Reactivate':'Deactivate'}</button>${(!isAdmin||myProfile?.role==='admin')?`<button class="danger" data-staff-remove="${s.id}" data-name="${esc(s.full_name||s.email)}">Remove Access</button>`:''}</div>`:'';
+  return `<div class="bowlerrow"><span><strong>${esc(s.full_name||s.email)}</strong>${self?' <span class="small muted">(You)</span>':''}<br><span class="small muted">${esc(s.email||'')}</span></span><span><span class="badge ${esc(s.role)}">${esc(roleLabel(s.role))}${s.active===false?' • Inactive':''}</span>${actions}</span></div>`;
+ }).join('')||'<p class="muted">No staff accounts found.</p>';
+ document.querySelectorAll('[data-staff-toggle]').forEach(b=>b.onclick=()=>toggleStaff(b.dataset.staffToggle,b.dataset.active==='true'));
+ document.querySelectorAll('[data-staff-remove]').forEach(b=>b.onclick=()=>removeStaff(b.dataset.staffRemove,b.dataset.name));
+}
 
 function scheduleRealtimeRefresh(table){
  clearTimeout(realtimeTimer);
@@ -328,6 +353,30 @@ function startRealtime(){
   .on('postgres_changes',{event:'*',schema:'public',table:'coach_profiles'},()=>scheduleRealtimeRefresh('coach_profiles'))
   .subscribe(status=>{if(status==='SUBSCRIBED')setCloud('Live sync connected','ok')});
 }
+
+async function invokeStaff(action,body={}){
+ $('staffActionState').textContent='Working…';
+ const {data,error}=await db.functions.invoke('manage-coach',{body:{action,...body}});
+ if(error){let msg=error.message;try{const j=await error.context.json();msg=j.error||j.message||msg}catch{}throw new Error(msg)}
+ if(data?.error)throw new Error(data.error);
+ $('staffActionState').textContent='✓ '+(data?.message||'Complete');return data;
+}
+async function inviteStaff(){
+ const full_name=$('staffName').value.trim(),email=$('staffEmail').value.trim().toLowerCase(),role=$('staffRole').value;
+ if(!full_name||!email)return alert('Enter the coach name and email address.');
+ if(role==='admin'&&myProfile?.role!=='admin')return alert('Only an Administrator can create another Administrator.');
+ try{await invokeStaff('invite',{full_name,email,role});$('staffName').value='';$('staffEmail').value='';$('staffRole').value='coach';await loadCore()}catch(e){$('staffActionState').textContent='';alert(e.message)}
+}
+async function toggleStaff(id,isActive){
+ const target=staff.find(x=>x.id===id);if(!target)return;
+ const action=isActive?'deactivate':'reactivate';
+ if(isActive&&!confirm(`Deactivate ${target.full_name||target.email}? They will no longer be allowed to use the Hub.`))return;
+ try{await invokeStaff(action,{user_id:id});await loadCore()}catch(e){alert(e.message)}
+}
+async function removeStaff(id,name){
+ if(!confirm(`Remove ${name}'s access to the Bis-Man Coaching Hub?`))return;
+ try{await invokeStaff('remove',{user_id:id});await loadCore()}catch(e){alert(e.message)}
+}
 function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===id));window.scrollTo({top:0,behavior:'smooth'});}
 async function start(user){sessionUser=user;try{coach=await getCoach(user.id);if(!coach.active)throw new Error('This Coaching Hub account is inactive.');$('who').textContent=coach.full_name||coach.email||user.email;$('roleBadge').textContent=roleLabel(coach.role);$('roleBadge').className='badge '+coach.role;$('loginView').classList.add('hidden');$('app').classList.remove('hidden');await loadCore();startRealtime();}catch(e){$('loginStatus').textContent=e.message;$('loginStatus').className='error';}}
 $('togglePassword').onclick=()=>{const p=$('password'),show=p.type==='password';p.type=show?'text':'password';$('togglePassword').textContent=show?'🙈':'👁';$('togglePassword').title=show?'Hide password':'Show password';};
@@ -335,6 +384,7 @@ $('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginSt
 $('signOutBtn').onclick=async()=>{await db.auth.signOut();location.reload()};$('refreshBtn').onclick=loadCore;
 $('addBowlerBtn').onclick=addBowler;$('addTeamBtn').onclick=addTeam;$('profileBowler').onchange=loadPlayer;$('saveProfileBtn').onclick=()=>saveProfile(false);$('setPhotoBtn').onclick=setProfilePhoto;$('removePhotoBtn').onclick=removeProfilePhoto;$('addCoachNoteBtn').onclick=addNote;$('addGoalBtn').onclick=addGoal;$('addBallBtn').onclick=addBall;
 $('newPracticeBtn').onclick=newPractice;$('savePracticeBtn').onclick=savePractice;$('addBlockBtn').onclick=addBlock;
+$('inviteStaffBtn').onclick=inviteStaff;
 ['pSchool','pGrade','pHand','pWeight','pPapX','pPapY','pSpeed','pRevs','pRotation','pTilt','pStyle','pLine','pNotes'].forEach(id=>{
  $(id).addEventListener('input',queueProfileSave);$(id).addEventListener('change',queueProfileSave);
 });
