@@ -34,6 +34,17 @@ main{max-width:1260px;margin:14px auto 40px;padding:0 12px}.card{background:var(
 <p id="loginStatus" class="muted">Ready</p>
 </section>
 
+<section id="passwordSetupView" class="login card hidden">
+<h2>Create Your Password</h2>
+<p class="muted">Welcome to the Bis-Man Coaching Hub. Create the password you will use for future sign-ins.</p>
+<form id="passwordSetupForm">
+<div class="field"><label>New Password</label><div class="passwordWrap"><input id="newPassword" type="password" autocomplete="new-password" minlength="8" required><button id="toggleNewPassword" class="eyeBtn" type="button" aria-label="Show password" title="Show password">👁</button></div></div><br>
+<div class="field"><label>Confirm Password</label><div class="passwordWrap"><input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" required><button id="toggleConfirmPassword" class="eyeBtn" type="button" aria-label="Show password" title="Show password">👁</button></div></div><br>
+<button class="primary" type="submit" style="width:100%">Create Password & Continue</button>
+</form>
+<p id="passwordSetupStatus" class="muted">Use at least 8 characters.</p>
+</section>
+
 <div id="app" class="hidden">
 <nav id="nav">
 <button data-view="dashboard" class="active">Dashboard</button>
@@ -405,7 +416,14 @@ async function removeStaff(id,name){
 }
 function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===id));window.scrollTo({top:0,behavior:'smooth'});}
 async function start(user){sessionUser=user;try{coach=await getCoach(user.id);if(!coach.active)throw new Error('This Coaching Hub account is inactive.');$('who').textContent=coach.full_name||coach.email||user.email;$('roleBadge').textContent=roleLabel(coach.role);$('roleBadge').className='badge '+coach.role;$('loginView').classList.add('hidden');$('app').classList.remove('hidden');await loadCore();startRealtime();}catch(e){$('loginStatus').textContent=e.message;$('loginStatus').className='error';}}
-$('togglePassword').onclick=()=>{const p=$('password'),show=p.type==='password';p.type=show?'text':'password';$('togglePassword').textContent=show?'🙈':'👁';$('togglePassword').title=show?'Hide password':'Show password';};
+let passwordRecoveryMode=location.hash.includes('type=recovery')||location.search.includes('type=recovery');
+function showPasswordSetup(){passwordRecoveryMode=true;$('loginView').classList.add('hidden');$('app').classList.add('hidden');$('passwordSetupView').classList.remove('hidden');}
+function toggleSecret(inputId,buttonId){const p=$(inputId),b=$(buttonId),show=p.type==='password';p.type=show?'text':'password';b.textContent=show?'🙈':'👁';b.title=show?'Hide password':'Show password';}
+$('togglePassword').onclick=()=>toggleSecret('password','togglePassword');
+$('toggleNewPassword').onclick=()=>toggleSecret('newPassword','toggleNewPassword');
+$('toggleConfirmPassword').onclick=()=>toggleSecret('confirmPassword','toggleConfirmPassword');
+$('passwordSetupForm').addEventListener('submit',async e=>{e.preventDefault();const p=$('newPassword').value,c=$('confirmPassword').value,st=$('passwordSetupStatus');st.className='muted';if(p.length<8){st.textContent='Password must be at least 8 characters.';st.className='error';return;}if(p!==c){st.textContent='Passwords do not match.';st.className='error';return;}st.textContent='Creating password…';const {data,error}=await db.auth.updateUser({password:p});if(error){st.textContent=error.message;st.className='error';return;}st.textContent='✓ Password created. Opening Coaching Hub…';st.className='success';passwordRecoveryMode=false;$('passwordSetupView').classList.add('hidden');if(data.user)await start(data.user);});
+
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginStatus').textContent='Signing in…';$('loginStatus').className='muted';const {data,error}=await db.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error){$('loginStatus').textContent=error.message;$('loginStatus').className='error';return;}await start(data.user);});
 $('signOutBtn').onclick=async()=>{await db.auth.signOut();location.reload()};$('refreshBtn').onclick=loadCore;
 $('addBowlerBtn').onclick=addBowler;$('addTeamBtn').onclick=addTeam;$('profileBowler').onchange=loadPlayer;$('saveProfileBtn').onclick=()=>saveProfile(false);$('setPhotoBtn').onclick=setProfilePhoto;$('removePhotoBtn').onclick=removeProfilePhoto;$('addCoachNoteBtn').onclick=addNote;$('addGoalBtn').onclick=addGoal;$('addBallBtn').onclick=addBall;
@@ -415,6 +433,7 @@ $('inviteStaffBtn').onclick=inviteStaff;
  $(id).addEventListener('input',queueProfileSave);$(id).addEventListener('change',queueProfileSave);
 });
 document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>showView(b.dataset.view));
-db.auth.getSession().then(({data})=>{if(data.session?.user)start(data.session.user)});
+db.auth.onAuthStateChange((event,session)=>{if(event==='PASSWORD_RECOVERY'){showPasswordSetup();}});
+db.auth.getSession().then(({data})=>{if(data.session?.user){if(passwordRecoveryMode)showPasswordSetup();else start(data.session.user)}});
 </script>
 </body></html>
