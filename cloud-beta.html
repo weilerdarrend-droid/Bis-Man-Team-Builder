@@ -211,7 +211,8 @@ async function loadPlayer(){
  const b=bowlers.find(x=>x.id===id);$('profileName').textContent=`#${b.jersey_number} ${fullName(b)}`;
  const [p,n,a,g]=await Promise.all([db.from('player_profiles').select('*').eq('bowler_id',id).maybeSingle(),db.from('coaching_notes').select('*').eq('bowler_id',id).order('created_at',{ascending:false}),db.from('arsenal').select('*').eq('bowler_id',id).order('created_at'),db.from('development_goals').select('*').eq('bowler_id',id).order('created_at',{ascending:false})]);
  for(const r of [p,n,a,g])if(r.error)throw r.error;const x=p.data||{};
- const map={pSchool:'school',pGrade:'grade',pHand:'handedness',pWeight:'ball_weight',pPapX:'pap_x',pPapY:'pap_y',pSpeed:'ball_speed',pRevs:'rev_rate',pRotation:'axis_rotation',pTilt:'axis_tilt',pStyle:'bowling_style',pLine:'preferred_line',pNotes:'general_notes'};
+ $('pSchool').value=b.school??'';$('pGrade').value=b.grade??'';$('pSchool').disabled=$('pGrade').disabled=!canEditPlayer();
+ const map={pHand:'handedness',pWeight:'ball_weight',pPapX:'pap_x',pPapY:'pap_y',pSpeed:'ball_speed',pRevs:'rev_rate',pRotation:'axis_rotation',pTilt:'axis_tilt',pStyle:'bowling_style',pLine:'preferred_line',pNotes:'general_notes'};
  Object.entries(map).forEach(([el,k])=>{$(el).value=x[k]??'';$(el).disabled=!canEditPlayer()});
  renderProfilePhoto(x.photo_url);
  $('photoControls').classList.toggle('hidden',!canEditPlayer());
@@ -256,9 +257,19 @@ async function removeProfilePhoto(){
  if(error)return alert(error.message);renderProfilePhoto(null);setCloud('Profile photo removed','ok');
 }
 async function saveProfile(){
- if(!selectedBowler||!canEditPlayer())return;const val=id=>$(id).value.trim()||null;
- const payload={bowler_id:selectedBowler,school:val('pSchool'),grade:val('pGrade'),handedness:val('pHand'),ball_weight:val('pWeight'),pap_x:val('pPapX'),pap_y:val('pPapY'),ball_speed:val('pSpeed'),rev_rate:val('pRevs'),axis_rotation:val('pRotation'),axis_tilt:val('pTilt'),bowling_style:val('pStyle'),preferred_line:val('pLine'),general_notes:val('pNotes')};
- const {error}=await db.from('player_profiles').upsert(payload);if(error)return alert(error.message);setCloud('Player profile saved','ok');
+ if(!selectedBowler||!canEditPlayer())return;
+ const val=id=>$(id).value.trim()||null;
+ setCloud('Saving player profile…');
+ // School and grade belong to the shared bowlers table.
+ const rosterUpdate=await db.from('bowlers').update({school:val('pSchool'),grade:val('pGrade')}).eq('id',selectedBowler);
+ if(rosterUpdate.error){alert(rosterUpdate.error.message);setCloud('Profile save failed','error');return;}
+ // Bowling-specific measurements and notes belong to player_profiles.
+ const payload={bowler_id:selectedBowler,handedness:val('pHand'),ball_weight:val('pWeight'),pap_x:val('pPapX'),pap_y:val('pPapY'),ball_speed:val('pSpeed'),rev_rate:val('pRevs'),axis_rotation:val('pRotation'),axis_tilt:val('pTilt'),bowling_style:val('pStyle'),preferred_line:val('pLine'),general_notes:val('pNotes')};
+ const profileUpdate=await db.from('player_profiles').upsert(payload);
+ if(profileUpdate.error){alert(profileUpdate.error.message);setCloud('Profile save failed','error');return;}
+ // Update the in-memory roster so the profile stays current without requiring a full reload.
+ const b=bowlers.find(x=>x.id===selectedBowler);if(b){b.school=val('pSchool');b.grade=val('pGrade');}
+ setCloud('Player profile saved','ok');
 }
 function renderNotes(rows){$('coachNotes').innerHTML=rows.map(n=>`<div class="listitem"><strong>${esc(n.note)}</strong><div class="small muted">${new Date(n.created_at).toLocaleString()}</div>${canEditPlayer()?`<button data-del-note="${n.id}">Delete</button>`:''}</div>`).join('')||'<p class="muted">No coaching notes yet.</p>';document.querySelectorAll('[data-del-note]').forEach(b=>b.onclick=()=>deleteRow('coaching_notes',b.dataset.delNote));}
 async function addNote(){const note=$('newCoachNote').value.trim();if(!note||!selectedBowler)return;const {error}=await db.from('coaching_notes').insert({bowler_id:selectedBowler,note});if(error)return alert(error.message);$('newCoachNote').value='';await loadPlayer();}
