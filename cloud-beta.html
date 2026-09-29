@@ -10,7 +10,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--navy:#0d2940;--blue:#1671ae;--blue2:#2189cb;--bg:#eef3f7;--card:#fff;--line:#cfdae4;--muted:#607487;--red:#b62f2f;--green:#16734b;--gold:#a77800}
-*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:#10283d;font-family:Arial,Helvetica,sans-serif}button,input,select,textarea{font:inherit}button{min-height:44px;border:0;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer;background:#e7eef4;color:#10283d}button.primary{background:var(--blue);color:white}button.danger{background:var(--red);color:white}button.good{background:var(--green);color:white}button:disabled{opacity:.45;cursor:not-allowed}input,select,textarea{min-height:44px;border:1px solid #bdccda;border-radius:8px;padding:9px;background:white;width:100%;font-size:16px}textarea{min-height:92px;resize:vertical}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:#10283d;font-family:Arial,Helvetica,sans-serif}button,input,select,textarea{font:inherit}button{min-height:44px;border:0;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer;background:#e7eef4;color:#10283d}button.primary{background:var(--blue);color:white}button.danger{background:var(--red);color:white}button.good{background:var(--green);color:white}button:disabled{opacity:.45;cursor:not-allowed}input,select,textarea{min-height:44px;border:1px solid #bdccda;border-radius:8px;padding:9px;background:white;width:100%;font-size:16px}.passwordWrap{position:relative}.passwordWrap input{padding-right:50px}.eyeBtn{position:absolute;right:3px;top:3px;min-height:38px;width:44px;padding:0;background:transparent;font-size:20px}.saveState{font-size:12px;font-weight:700;margin-left:8px}.saveState.saving{color:#a77800}.saveState.saved{color:#16734b}textarea{min-height:92px;resize:vertical}
 header{background:var(--navy);color:white;padding:8px 18px}.brand{max-width:1260px;margin:auto;display:flex;align-items:center;gap:20px}.brand img{width:min(430px,52vw);max-height:105px;object-fit:contain}.brandcopy h1{margin:0 0 4px;font-size:23px}.brandcopy div{opacity:.9}
 nav{position:sticky;top:0;z-index:20;background:#102f49;border-bottom:1px solid #284b65;overflow-x:auto;white-space:nowrap;padding:7px max(12px,calc((100vw - 1260px)/2))}nav button{margin:0 3px;background:transparent;color:#dceaf4;border:1px solid transparent}nav button.active{background:#fff;color:#10283d}
 main{max-width:1260px;margin:14px auto 40px;padding:0 12px}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 1px 2px #00000008}.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.tools>*{width:auto}.status{background:#e9f0f5;border-radius:9px;padding:8px 10px;color:#41596c}.badge{display:inline-block;border-radius:999px;padding:5px 9px;background:#e6f0f8;font-weight:700}.badge.admin{background:#dcecf8}.badge.head_coach{background:#e7e2fb}.badge.coach{background:#e4f4e9}.badge.view_only{background:#eee}.hidden{display:none!important}.view{display:none}.view.active{display:block}
@@ -28,7 +28,7 @@ main{max-width:1260px;margin:14px auto 40px;padding:0 12px}.card{background:var(
 <p class="muted">Sign in to the shared Bis-Man Coaching Hub.</p>
 <form id="loginForm">
 <div class="field"><label>Email</label><input id="email" type="email" autocomplete="username" required></div><br>
-<div class="field"><label>Password</label><input id="password" type="password" autocomplete="current-password" required></div><br>
+<div class="field"><label>Password</label><div class="passwordWrap"><input id="password" type="password" autocomplete="current-password" required><button id="togglePassword" class="eyeBtn" type="button" aria-label="Show password" title="Show password">👁</button></div></div><br>
 <button class="primary" type="submit" style="width:100%">Sign In</button>
 </form>
 <p id="loginStatus" class="muted">Ready</p>
@@ -72,7 +72,7 @@ main{max-width:1260px;margin:14px auto 40px;padding:0 12px}.card{background:var(
 </section>
 
 <section id="profiles" class="view">
-<div class="card profilehead"><div class="field"><label>Select Bowler</label><select id="profileBowler"></select></div><button id="saveProfileBtn" class="primary">Save Player Profile</button></div>
+<div class="card profilehead"><div class="field"><label>Select Bowler</label><select id="profileBowler"></select></div><span id="profileSaveState" class="saveState saved">✓ Cloud saved</span><button id="saveProfileBtn" class="primary">Save Now</button></div>
 <div id="profileArea" class="hidden">
 <div class="card"><h2 id="profileName">Player Profile</h2><div class="profiletop">
 <div>
@@ -131,7 +131,7 @@ const SUPABASE_URL='https://thfgexrbckzabsyzshro.supabase.co';
 const SUPABASE_KEY='sb_publishable_WRIjhgSGtQAUM3t3-cSLvg_4i_xJ3pl';
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let sessionUser=null, coach=null, bowlers=[], teams=[], assignments=[], practices=[], staff=[];
-let selectedBowler=null, selectedPractice=null;
+let selectedBowler=null, selectedPractice=null, profileSaveTimer=null, profileLoading=false, realtimeTimer=null;
 const $=id=>document.getElementById(id);
 const canEditPlayer=()=>['admin','head_coach','coach'].includes(coach?.role);
 const canRoster=()=>['admin','head_coach'].includes(coach?.role);
@@ -140,6 +140,7 @@ const roleLabel=r=>({admin:'Administrator',head_coach:'Head Coach',coach:'Coach'
 function setCloud(s,cls=''){ $('cloudStatus').textContent=s; $('cloudStatus').className='status '+cls; }
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function fullName(b){return `${b.first_name||''} ${b.last_name||''}`.trim();}
+function coachName(id){const c=staff.find(x=>x.id===id);return c?.full_name||c?.email||'Coach';}
 function sortBowlers(a,b){return (a.last_name||'').localeCompare(b.last_name||'')||(a.first_name||'').localeCompare(b.first_name||'');}
 async function getCoach(uid){const {data,error}=await db.from('coach_profiles').select('*').eq('id',uid).single();if(error)throw error;return data;}
 async function loadCore(){
@@ -208,6 +209,7 @@ function renderProfileSelect(){const old=$('profileBowler').value;$('profileBowl
 async function openProfile(id){selectedBowler=id;showView('profiles');$('profileBowler').value=id;await loadPlayer();}
 async function loadPlayer(){
  const id=$('profileBowler').value;selectedBowler=id;$('profileArea').classList.toggle('hidden',!id);if(!id)return;
+ profileLoading=true;
  const b=bowlers.find(x=>x.id===id);$('profileName').textContent=`#${b.jersey_number} ${fullName(b)}`;
  const [p,n,a,g]=await Promise.all([db.from('player_profiles').select('*').eq('bowler_id',id).maybeSingle(),db.from('coaching_notes').select('*').eq('bowler_id',id).order('created_at',{ascending:false}),db.from('arsenal').select('*').eq('bowler_id',id).order('created_at'),db.from('development_goals').select('*').eq('bowler_id',id).order('created_at',{ascending:false})]);
  for(const r of [p,n,a,g])if(r.error)throw r.error;const x=p.data||{};
@@ -219,6 +221,8 @@ async function loadPlayer(){
  renderNotes(n.data||[]);renderArsenal(a.data||[]);renderGoals(g.data||[]);
  ['newCoachNote','goalFocus','goalStatus','goalNotes','aName','aWeight','aRg','aDiff','aInt','aCover','aSurface','aLayout','aPinPap','aRole','aNotes'].forEach(el=>$(el).disabled=!canEditPlayer());
  ['addCoachNoteBtn','addGoalBtn','addBallBtn'].forEach(el=>$(el).classList.toggle('hidden',!canEditPlayer()));
+ profileLoading=false;
+ $('profileSaveState').textContent='✓ Cloud saved';$('profileSaveState').className='saveState saved';
 }
 
 function renderProfilePhoto(url){
@@ -256,27 +260,31 @@ async function removeProfilePhoto(){
  const {error}=await db.from('player_profiles').upsert({bowler_id:selectedBowler,photo_url:null});
  if(error)return alert(error.message);renderProfilePhoto(null);setCloud('Profile photo removed','ok');
 }
-async function saveProfile(){
- if(!selectedBowler||!canEditPlayer())return;
+async function saveProfile(quiet=false){
+ if(!selectedBowler||!canEditPlayer()||profileLoading)return;
  const val=id=>$(id).value.trim()||null;
- setCloud('Saving player profile…');
- // School and grade belong to the shared bowlers table.
- const rosterUpdate=await db.from('bowlers').update({school:val('pSchool'),grade:val('pGrade')}).eq('id',selectedBowler);
- if(rosterUpdate.error){alert(rosterUpdate.error.message);setCloud('Profile save failed','error');return;}
- // Bowling-specific measurements and notes belong to player_profiles.
- const payload={bowler_id:selectedBowler,handedness:val('pHand'),ball_weight:val('pWeight'),pap_x:val('pPapX'),pap_y:val('pPapY'),ball_speed:val('pSpeed'),rev_rate:val('pRevs'),axis_rotation:val('pRotation'),axis_tilt:val('pTilt'),bowling_style:val('pStyle'),preferred_line:val('pLine'),general_notes:val('pNotes')};
+ $('profileSaveState').textContent='Saving…';$('profileSaveState').className='saveState saving';
+ if(!quiet)setCloud('Saving player profile…');
+ const rosterUpdate=await db.from('bowlers').update({school:val('pSchool'),grade:val('pGrade'),updated_by:sessionUser.id}).eq('id',selectedBowler);
+ if(rosterUpdate.error){alert(rosterUpdate.error.message);$('profileSaveState').textContent='Save failed';return;}
+ const payload={bowler_id:selectedBowler,handedness:val('pHand'),ball_weight:val('pWeight'),pap_x:val('pPapX'),pap_y:val('pPapY'),ball_speed:val('pSpeed'),rev_rate:val('pRevs'),axis_rotation:val('pRotation'),axis_tilt:val('pTilt'),bowling_style:val('pStyle'),preferred_line:val('pLine'),general_notes:val('pNotes'),updated_by:sessionUser.id};
  const profileUpdate=await db.from('player_profiles').upsert(payload);
- if(profileUpdate.error){alert(profileUpdate.error.message);setCloud('Profile save failed','error');return;}
- // Update the in-memory roster so the profile stays current without requiring a full reload.
+ if(profileUpdate.error){alert(profileUpdate.error.message);$('profileSaveState').textContent='Save failed';return;}
  const b=bowlers.find(x=>x.id===selectedBowler);if(b){b.school=val('pSchool');b.grade=val('pGrade');}
- setCloud('Player profile saved','ok');
+ $('profileSaveState').textContent='✓ Saved to Cloud';$('profileSaveState').className='saveState saved';
+ if(!quiet)setCloud('Player profile saved','ok');
 }
-function renderNotes(rows){$('coachNotes').innerHTML=rows.map(n=>`<div class="listitem"><strong>${esc(n.note)}</strong><div class="small muted">${new Date(n.created_at).toLocaleString()}</div>${canEditPlayer()?`<button data-del-note="${n.id}">Delete</button>`:''}</div>`).join('')||'<p class="muted">No coaching notes yet.</p>';document.querySelectorAll('[data-del-note]').forEach(b=>b.onclick=()=>deleteRow('coaching_notes',b.dataset.delNote));}
-async function addNote(){const note=$('newCoachNote').value.trim();if(!note||!selectedBowler)return;const {error}=await db.from('coaching_notes').insert({bowler_id:selectedBowler,note});if(error)return alert(error.message);$('newCoachNote').value='';await loadPlayer();}
+function queueProfileSave(){
+ if(profileLoading||!selectedBowler||!canEditPlayer())return;
+ $('profileSaveState').textContent='Editing…';$('profileSaveState').className='saveState saving';
+ clearTimeout(profileSaveTimer);profileSaveTimer=setTimeout(()=>saveProfile(true),900);
+}
+function renderNotes(rows){$('coachNotes').innerHTML=rows.map(n=>`<div class="listitem"><strong>${esc(n.note)}</strong><div class="small muted">Added by ${esc(coachName(n.created_by))} • ${new Date(n.created_at).toLocaleString()}</div>${canEditPlayer()?`<button data-del-note="${n.id}">Delete</button>`:''}</div>`).join('')||'<p class="muted">No coaching notes yet.</p>';document.querySelectorAll('[data-del-note]').forEach(b=>b.onclick=()=>deleteRow('coaching_notes',b.dataset.delNote));}
+async function addNote(){const note=$('newCoachNote').value.trim();if(!note||!selectedBowler)return;const {error}=await db.from('coaching_notes').insert({bowler_id:selectedBowler,note,created_by:sessionUser.id,updated_by:sessionUser.id});if(error)return alert(error.message);$('newCoachNote').value='';await loadPlayer();}
 function renderGoals(rows){$('goals').innerHTML=rows.map(g=>`<div class="listitem"><strong>${esc(g.focus)}</strong> <span class="badge">${esc((g.status||'').replaceAll('_',' '))}</span><div>${esc(g.notes||'')}</div>${canEditPlayer()?`<button data-del-goal="${g.id}">Delete</button>`:''}</div>`).join('')||'<p class="muted">No development items yet.</p>';document.querySelectorAll('[data-del-goal]').forEach(b=>b.onclick=()=>deleteRow('development_goals',b.dataset.delGoal));}
-async function addGoal(){if(!selectedBowler)return;const focus=$('goalFocus').value.trim();if(!focus)return alert('Enter a focus or goal.');const {error}=await db.from('development_goals').insert({bowler_id:selectedBowler,focus,status:$('goalStatus').value,notes:$('goalNotes').value.trim()||null});if(error)return alert(error.message);$('goalFocus').value=$('goalNotes').value='';await loadPlayer();}
+async function addGoal(){if(!selectedBowler)return;const focus=$('goalFocus').value.trim();if(!focus)return alert('Enter a focus or goal.');const {error}=await db.from('development_goals').insert({bowler_id:selectedBowler,focus,status:$('goalStatus').value,notes:$('goalNotes').value.trim()||null,created_by:sessionUser.id,updated_by:sessionUser.id});if(error)return alert(error.message);$('goalFocus').value=$('goalNotes').value='';await loadPlayer();}
 function renderArsenal(rows){$('arsenal').innerHTML=rows.map(a=>`<div class="listitem"><strong>${esc(a.ball_name)}</strong> ${a.weight?`• ${esc(a.weight)} lb`:''}<div class="small">${[a.rg&&'RG '+a.rg,a.differential&&'Diff '+a.differential,a.coverstock,a.surface,a.layout&&'Layout '+a.layout,a.pin_to_pap&&'Pin-PAP '+a.pin_to_pap,a.ball_role].filter(Boolean).map(esc).join(' • ')}</div><div>${esc(a.notes||'')}</div>${canEditPlayer()?`<button data-del-ball="${a.id}">Delete</button>`:''}</div>`).join('')||'<p class="muted">No balls added yet.</p>';document.querySelectorAll('[data-del-ball]').forEach(b=>b.onclick=()=>deleteRow('arsenal',b.dataset.delBall));}
-async function addBall(){if(!selectedBowler)return;const val=id=>$(id).value.trim()||null,name=val('aName');if(!name)return alert('Enter the ball name.');const payload={bowler_id:selectedBowler,ball_name:name,weight:val('aWeight'),rg:val('aRg'),differential:val('aDiff'),intermediate_differential:val('aInt'),coverstock:val('aCover'),surface:val('aSurface'),layout:val('aLayout'),pin_to_pap:val('aPinPap'),ball_role:val('aRole'),notes:val('aNotes')};const {error}=await db.from('arsenal').insert(payload);if(error)return alert(error.message);['aName','aWeight','aRg','aDiff','aInt','aCover','aSurface','aLayout','aPinPap','aRole','aNotes'].forEach(x=>$(x).value='');await loadPlayer();}
+async function addBall(){if(!selectedBowler)return;const val=id=>$(id).value.trim()||null,name=val('aName');if(!name)return alert('Enter the ball name.');const payload={bowler_id:selectedBowler,ball_name:name,created_by:sessionUser.id,updated_by:sessionUser.id,weight:val('aWeight'),rg:val('aRg'),differential:val('aDiff'),intermediate_differential:val('aInt'),coverstock:val('aCover'),surface:val('aSurface'),layout:val('aLayout'),pin_to_pap:val('aPinPap'),ball_role:val('aRole'),notes:val('aNotes')};const {error}=await db.from('arsenal').insert(payload);if(error)return alert(error.message);['aName','aWeight','aRg','aDiff','aInt','aCover','aSurface','aLayout','aPinPap','aRole','aNotes'].forEach(x=>$(x).value='');await loadPlayer();}
 async function deleteRow(table,id){if(!confirm('Delete this item?'))return;const {error}=await db.from(table).delete().eq('id',id);if(error)return alert(error.message);await loadPlayer();}
 function renderPractices(){
  $('newPracticeBtn').classList.toggle('hidden',!canEditPlayer());
@@ -294,12 +302,42 @@ async function loadBlocks(){const {data,error}=await db.from('practice_blocks').
 async function addBlock(){if(!selectedPractice)return;const title=$('blockTitle').value.trim();if(!title)return alert('Enter a block title.');const {data}=await db.from('practice_blocks').select('display_order').eq('practice_id',selectedPractice).order('display_order',{ascending:false}).limit(1);const order=(data?.[0]?.display_order||0)+1;const {error}=await db.from('practice_blocks').insert({practice_id:selectedPractice,block_type:$('blockType').value,title,description:$('blockDescription').value.trim()||null,duration_minutes:Number($('blockMinutes').value)||null,display_order:order});if(error)return alert(error.message);$('blockTitle').value=$('blockMinutes').value=$('blockDescription').value='';await loadBlocks();}
 async function moveBlock(rows,id,dir){const i=rows.findIndex(x=>x.id===id),j=i+dir;if(i<0||j<0||j>=rows.length)return;const a=rows[i],b=rows[j],ao=a.display_order??i,bo=b.display_order??j;await db.from('practice_blocks').update({display_order:bo}).eq('id',a.id);await db.from('practice_blocks').update({display_order:ao}).eq('id',b.id);await loadBlocks();}
 function renderStaff(){$('staffList').innerHTML=staff.map(s=>`<div class="bowlerrow"><span><strong>${esc(s.full_name||s.email)}</strong><br><span class="small muted">${esc(s.email||'')}</span></span><span class="badge ${esc(s.role)}">${esc(roleLabel(s.role))}${s.active===false?' • Inactive':''}</span></div>`).join('')||'<p class="muted">No staff accounts found.</p>';}
+
+function scheduleRealtimeRefresh(table){
+ clearTimeout(realtimeTimer);
+ realtimeTimer=setTimeout(async()=>{
+  try{
+   if(['bowlers','teams','team_assignments','practice_plans','coach_profiles'].includes(table))await loadCore();
+   if(selectedBowler&&['player_profiles','coaching_notes','arsenal','development_goals'].includes(table))await loadPlayer();
+   if(selectedPractice&&table==='practice_blocks')await loadBlocks();
+   setCloud('Live • '+new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}),'ok');
+  }catch(e){console.warn('Realtime refresh',e)}
+ },350);
+}
+function startRealtime(){
+ db.channel('bisman-hub-live')
+  .on('postgres_changes',{event:'*',schema:'public',table:'bowlers'},()=>scheduleRealtimeRefresh('bowlers'))
+  .on('postgres_changes',{event:'*',schema:'public',table:'teams'},()=>scheduleRealtimeRefresh('teams'))
+  .on('postgres_changes',{event:'*',schema:'public',table:'team_assignments'},()=>scheduleRealtimeRefresh('team_assignments'))
+  .on('postgres_changes',{event:'*',schema:'public',table:'player_profiles'},()=>scheduleRealtimeRefresh('player_profiles'))
+  .on('postgres_changes',{event:'*',schema:'public',table:'coaching_notes'},()=>scheduleRealtimeRefresh('coaching_notes'))
+  .on('postgres_changes',{event:'*',schema:'public',table:'arsenal'},()=>scheduleRealtimeRefresh('arsenal'))
+  .on('postgres_changes',{event:'*',schema:'public',table:'development_goals'},()=>scheduleRealtimeRefresh('development_goals'))
+  .on('postgres_changes',{event:'*',schema:'public',table:'practice_plans'},()=>scheduleRealtimeRefresh('practice_plans'))
+  .on('postgres_changes',{event:'*',schema:'public',table:'practice_blocks'},()=>scheduleRealtimeRefresh('practice_blocks'))
+  .on('postgres_changes',{event:'*',schema:'public',table:'coach_profiles'},()=>scheduleRealtimeRefresh('coach_profiles'))
+  .subscribe(status=>{if(status==='SUBSCRIBED')setCloud('Live sync connected','ok')});
+}
 function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===id));window.scrollTo({top:0,behavior:'smooth'});}
-async function start(user){sessionUser=user;try{coach=await getCoach(user.id);if(!coach.active)throw new Error('This Coaching Hub account is inactive.');$('who').textContent=coach.full_name||coach.email||user.email;$('roleBadge').textContent=roleLabel(coach.role);$('roleBadge').className='badge '+coach.role;$('loginView').classList.add('hidden');$('app').classList.remove('hidden');await loadCore();}catch(e){$('loginStatus').textContent=e.message;$('loginStatus').className='error';}}
+async function start(user){sessionUser=user;try{coach=await getCoach(user.id);if(!coach.active)throw new Error('This Coaching Hub account is inactive.');$('who').textContent=coach.full_name||coach.email||user.email;$('roleBadge').textContent=roleLabel(coach.role);$('roleBadge').className='badge '+coach.role;$('loginView').classList.add('hidden');$('app').classList.remove('hidden');await loadCore();startRealtime();}catch(e){$('loginStatus').textContent=e.message;$('loginStatus').className='error';}}
+$('togglePassword').onclick=()=>{const p=$('password'),show=p.type==='password';p.type=show?'text':'password';$('togglePassword').textContent=show?'🙈':'👁';$('togglePassword').title=show?'Hide password':'Show password';};
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginStatus').textContent='Signing in…';$('loginStatus').className='muted';const {data,error}=await db.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error){$('loginStatus').textContent=error.message;$('loginStatus').className='error';return;}await start(data.user);});
 $('signOutBtn').onclick=async()=>{await db.auth.signOut();location.reload()};$('refreshBtn').onclick=loadCore;
-$('addBowlerBtn').onclick=addBowler;$('addTeamBtn').onclick=addTeam;$('profileBowler').onchange=loadPlayer;$('saveProfileBtn').onclick=saveProfile;$('setPhotoBtn').onclick=setProfilePhoto;$('removePhotoBtn').onclick=removeProfilePhoto;$('addCoachNoteBtn').onclick=addNote;$('addGoalBtn').onclick=addGoal;$('addBallBtn').onclick=addBall;
+$('addBowlerBtn').onclick=addBowler;$('addTeamBtn').onclick=addTeam;$('profileBowler').onchange=loadPlayer;$('saveProfileBtn').onclick=()=>saveProfile(false);$('setPhotoBtn').onclick=setProfilePhoto;$('removePhotoBtn').onclick=removeProfilePhoto;$('addCoachNoteBtn').onclick=addNote;$('addGoalBtn').onclick=addGoal;$('addBallBtn').onclick=addBall;
 $('newPracticeBtn').onclick=newPractice;$('savePracticeBtn').onclick=savePractice;$('addBlockBtn').onclick=addBlock;
+['pSchool','pGrade','pHand','pWeight','pPapX','pPapY','pSpeed','pRevs','pRotation','pTilt','pStyle','pLine','pNotes'].forEach(id=>{
+ $(id).addEventListener('input',queueProfileSave);$(id).addEventListener('change',queueProfileSave);
+});
 document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>showView(b.dataset.view));
 db.auth.getSession().then(({data})=>{if(data.session?.user)start(data.session.user)});
 </script>
