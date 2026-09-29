@@ -321,9 +321,10 @@ function renderStaff(){
  $('staffRole').querySelector('option[value="admin"]').disabled=myProfile?.role!=='admin';
  $('staffList').innerHTML=staff.map(s=>{
   const self=s.id===sessionUser?.id,isAdmin=s.role==='admin';
-  const actions=manage&&!self?`<div class="rowgap"><button data-staff-toggle="${s.id}" data-active="${s.active!==false}">${s.active===false?'Reactivate':'Deactivate'}</button>${(!isAdmin||myProfile?.role==='admin')?`<button class="danger" data-staff-remove="${s.id}" data-name="${esc(s.full_name||s.email)}">Remove Access</button>`:''}</div>`:'';
+  const actions=manage&&!self?`<div class="rowgap"><button data-staff-resend="${s.id}" data-name="${esc(s.full_name||s.email)}">Resend Invitation</button><button data-staff-toggle="${s.id}" data-active="${s.active!==false}">${s.active===false?'Reactivate':'Deactivate'}</button>${(!isAdmin||myProfile?.role==='admin')?`<button class="danger" data-staff-remove="${s.id}" data-name="${esc(s.full_name||s.email)}">Remove Access</button>`:''}</div>`:'';
   return `<div class="bowlerrow"><span><strong>${esc(s.full_name||s.email)}</strong>${self?' <span class="small muted">(You)</span>':''}<br><span class="small muted">${esc(s.email||'')}</span></span><span><span class="badge ${esc(s.role)}">${esc(roleLabel(s.role))}${s.active===false?' • Inactive':''}</span>${actions}</span></div>`;
  }).join('')||'<p class="muted">No staff accounts found.</p>';
+ document.querySelectorAll('[data-staff-resend]').forEach(b=>b.onclick=()=>resendStaff(b.dataset.staffResend,b.dataset.name));
  document.querySelectorAll('[data-staff-toggle]').forEach(b=>b.onclick=()=>toggleStaff(b.dataset.staffToggle,b.dataset.active==='true'));
  document.querySelectorAll('[data-staff-remove]').forEach(b=>b.onclick=()=>removeStaff(b.dataset.staffRemove,b.dataset.name));
 }
@@ -366,6 +367,17 @@ async function inviteStaff(){
  if(!full_name||!email)return alert('Enter the coach name and email address.');
  if(role==='admin'&&myProfile?.role!=='admin')return alert('Only an Administrator can create another Administrator.');
  try{await invokeStaff('invite',{full_name,email,role});$('staffName').value='';$('staffEmail').value='';$('staffRole').value='coach';await loadCore()}catch(e){$('staffActionState').textContent='';alert(e.message)}
+}
+async function resendStaff(id,name){
+ if(!confirm(`Create a new Bis-Man Coaching Hub invitation link for ${name}?`))return;
+ try{
+  const data=await invokeStaff('resend',{user_id:id});
+  if(data?.invite_link){
+   try{await navigator.clipboard.writeText(data.invite_link);alert(`A new invitation link for ${name} has been copied to your clipboard.\n\nSend that link to the coach by email or text.`)}
+   catch{prompt(`Copy this invitation link and send it to ${name}:`,data.invite_link)}
+  }
+  await loadCore();
+ }catch(e){alert(e.message)}
 }
 async function toggleStaff(id,isActive){
  const target=staff.find(x=>x.id===id);if(!target)return;
